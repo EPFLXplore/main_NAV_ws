@@ -151,6 +151,13 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 
+
+catkin_install_python(PROGRAMS
+   twist_to_wheels.py
+   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+
 #############
 ## Install ##
 #############
