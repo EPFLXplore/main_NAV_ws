@@ -30,8 +30,9 @@ roslaunch rover_description gazebo.launch
 ```
 In rViz, the robot model and the reference frame should be manually selected
 
-Once Gazebo is running, to command a wheel to spin type in a new terminal:
+Once Gazebo is running, a controller can be launched with the following 2 nodes:
 ```bash
-rostopic pub -1 /rover/<wheel_joint_name>/command std_msgs/Float64 "data: <speed_value>"
+rosrun wheels_control twist_to_wheels.py
+rosrun teleop_twist_keyboard teleop_twist_keyboard.py
 ```
 
