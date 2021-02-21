@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
      Commit Version: 1.6.0-1-g15f4949  Build Version: 1.6.7594.29634
-     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter 
+     
+     xyz="-0.243150296037687 0.000263190444826854 -0.13955963438326"
+     
+     -->
 <robot name="rover">
   <link
     name="Rover frame">
     <inertial>
       <origin
-        xyz="-0.243150296037687 0.000263190444826854 -0.13955963438326"
+        xyz="-0.18 0.00 -0.105"
         rpy="0 0 0" />
       <mass
         value="2.86544274049469" />
