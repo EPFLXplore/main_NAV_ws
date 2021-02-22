@@ -56,7 +56,7 @@ def callback(twist):
         rotation_l_rear.data = rotation_l.data*0.5
 
     elif twist.angular.z > 0:
-        rotation_l.data = twist.linear.x*2 - twist.angular.z*1
+        rotation_l.data = twist.linear.x*2 + twist.angular.z*1
         rotation_r.data = -(twist.linear.x*2 + twist.angular.z*10)
 
         rotation_r_mid.data = rotation_r.data*1
