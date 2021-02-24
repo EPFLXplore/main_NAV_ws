@@ -8,6 +8,11 @@ rover:
     type: joint_state_controller/JointStateController
     publish_rate: 100.0
 
+  transmission_rocker_left:   # with left rocker
+    type: effort_controllers/JointVelocityController
+    joint: ROCKER_LEFT
+    pid: {p: 1.0, i: 0.0, d: 0.0}
+
   # effort controllers for the 6 driving wheels
   left_joint_effort_controller_1:   # with left rocker
     type: effort_controllers/JointVelocityController
