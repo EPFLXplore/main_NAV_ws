@@ -1,7 +1,13 @@
 <launch>
 
   <!-- Start gazebo and load the world -->
-  <include file="$(find gazebo_ros)/launch/empty_world.launch" />
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find rover_description)/worlds/mars.world" />
+    <arg name="paused" value="true" />
+    <arg name="use_sim_time" value="true" />
+    <arg name="verbose" value="true" />
+    <arg name="debug" value="true" />
+  </include>
 
   <node name="tf_footprint_base"
     pkg="tf"
@@ -9,7 +15,7 @@
     args="0 0 0 0 0 0 base_link base_footprint 40" />
 
   <!-- Load the URDF into the ROS Parameter Server -->
-  <param name="robot_description" 
+  <param name="robot_description"
     textfile="$(find rover_description)/urdf/Rover_URDF_V6.urdf"/>
 
   <!-- Run a python script to the send a service call to gazebo_ros to spawn the rover -->
@@ -25,7 +31,7 @@
     args="pub /calibrated std_msgs/Bool true" />
 
   <!-- Start the controller   -->
-  <include file="$(find wheels_control)/launch/wheels_control.launch" /> 
+  <include file="$(find wheels_control)/launch/wheels_control.launch" />
 
 
 </launch>
