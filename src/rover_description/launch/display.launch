@@ -1,7 +1,7 @@
 <launch>
   <arg name="model" />
   <param name="robot_description"
-    textfile="$(find rover_description)/urdf/Rover_URDF_V6.urdf" />
+    command="$(find xacro)/xacro.py '$(find rover_description)/urdf/Rover_URDF_V6.urdf.xacro'"/>
   <node name="joint_state_publisher_gui"
     pkg="joint_state_publisher_gui"
     type="joint_state_publisher_gui" />
