@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com)
      Commit Version: 1.6.0-1-g15f4949  Build Version: 1.6.7594.29634
-     For more information, please see http://wiki.ros.org/sw_urdf_exporter 
-     
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter
+
      xyz="-0.243150296037687 0.000263190444826854 -0.13955963438326"
-     
+
      -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="rover">
-    
+
   <link
     name="Rover_frame">
     <inertial>
@@ -216,6 +216,7 @@
       upper="3.14"
       effort="0"
       velocity="0" />
+    <dynamics damping ="50"/>
   </joint>
   <link
     name="WHEEL_LEFT_2">
@@ -491,6 +492,7 @@
       upper="3.14"
       effort="0"
       velocity="0" />
+    <dynamics damping ="50"/>
   </joint>
   <link
     name="WHEEL_RIGHT_2">
