@@ -11,7 +11,7 @@
     <param name="min_height" value="0.3"/>
     <param name="max_height" value="1.7"/>
     <param name="range_min" value="0.2"/>
-    <param name="target_frame" value="chassis"/>
+    <param name="target_frame" value="Rover_frame"/>
 
     <remap from="cloud_in" to="/point_cloud_differentiated"/><!--/os1_cloud_node/points"/>-->
     <remap from="scan" to="mybot/laser/scan2"/>
@@ -48,8 +48,8 @@
     
     <remap from="cmd_vel" to="cmd_vel"/>
     <remap from="odom" to="odom"/>
-    <remap from="scan" to="os1_cloud_node/points"/>
-    <remap from="cloud_in" to="os1_cloud_node/points" />
+    <remap from="scan" to="mybot/laser/scan2"/> <!--to="os1_cloud_node/points"/>-->
+    <!--<remap from="cloud_in" to="os1_cloud_node/points" />-->
     <param name="move_base/DWAPlannerROS/yaw_goal_tolerance" value="1.0"/>
     <param name="move_base/DWAPlannerROS/xy_goal_tolerance" value="1.0"/>
 
