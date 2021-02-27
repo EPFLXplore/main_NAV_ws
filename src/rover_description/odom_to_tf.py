@@ -26,7 +26,7 @@ def callback(odometry):
 
     t.header.stamp = rospy.Time.now()
     t.header.frame_id = "odom"
-    t.child_frame_id = "Rover_frame"
+    t.child_frame_id = "CHASSIS"
     t.transform.translation.x = odometry.pose.pose.position.x
     t.transform.translation.y = odometry.pose.pose.position.y
     t.transform.translation.z = odometry.pose.pose.position.z

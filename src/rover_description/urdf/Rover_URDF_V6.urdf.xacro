@@ -8,8 +8,44 @@
      -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="rover">
 
+  <!-- virtual joint - link pair to get the inclination of the rover base -->
+  <joint name="Base_joint" type="revolute">
+      <origin
+      xyz="-0.18 0 -0.105"
+      rpy="0 0 0" />
+      <axis
+      xyz="0 1 0" />
+      <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="100"
+      velocity="10" />
+      <parent link="CHASSIS"/>
+      <child link="ROVER_FRAME"/>
+  </joint>
+
   <link
-    name="Rover_frame">
+    name="ROVER_FRAME">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="2.86544274049469" />
+      <inertia
+        ixx="0.103079825863941"
+        ixy="-0.00028741576657649"
+        ixz="-0.024219701014768"
+        iyy="0.230618546322903"
+        iyz="-8.00119839628446E-05"
+        izz="0.290474747721043" />
+    </inertial>
+  </link>
+
+<!--                                                                     -->
+
+  <link
+    name="CHASSIS">
     <inertial>
       <origin
         xyz="-0.18 0.00 -0.105"
@@ -30,7 +66,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://rover_description/meshes/Rover frame.STL" />
+          filename="package://rover_description/meshes/CHASSIS.STL" />
       </geometry>
       <material
         name="">
@@ -44,15 +80,10 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://rover_description/meshes/Rover frame.STL" />
+          filename="package://rover_description/meshes/CHASSIS.STL" />
       </geometry>
     </collision>
   </link>
-
-
-
-
-
   <link
     name="ROCKER_LEFT">
     <inertial>
@@ -97,17 +128,17 @@
     name="ROCKER_LEFT"
     type="revolute">
     <origin
-      xyz="-0.18 0.23 -0.105"
+      xyz="0 0.23 0"
       rpy="0 0 0" />
     <parent
-      link="Rover_frame" />
+      link="ROVER_FRAME" />
     <child
       link="ROCKER_LEFT" />
     <axis
       xyz="0 -1 0" />
     <limit
-      lower="-0.01"
-      upper="0.01"
+      lower="-3.14"
+      upper="3.14"
       effort="100"
       velocity="30" />
   </joint>
@@ -373,10 +404,10 @@
     name="ROCKER_RIGHT"
     type="revolute">
     <origin
-      xyz="-0.18 -0.23 -0.105"
+      xyz="0 -0.23 0"
       rpy="0 0 0" />
     <parent
-      link="Rover_frame" />
+      link="ROVER_FRAME" />
     <child
       link="ROCKER_RIGHT" />
     <axis
@@ -578,8 +609,6 @@
       </geometry>
       <material
         name="">
-
-
         <color
           rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
       </material>
@@ -609,11 +638,10 @@
   </joint>
 
 
-
   <joint name="hokuyo_joint" type="fixed">
     <axis xyz="0 1 0" />
     <origin xyz=".15 0 .1" rpy="0 0 0"/>
-    <parent link="Rover_frame"/>
+    <parent link="CHASSIS"/>
     <child link="hokuyo"/>
   </joint>
 
@@ -641,11 +669,9 @@
 
   <!-- LiDar -->
   <xacro:include filename="$(find ouster_description)/urdf/OS1-64.urdf.xacro"/>
-  <OS1-64 parent="Rover_frame" name="os1_sensor" hz="10" samples="220" lasers="64" min_range="0.1" max_range="10.0">
+  <OS1-64 parent="CHASSIS" name="os1_sensor" hz="10" samples="220" lasers="64" min_range="0.1" max_range="10.0">
     <origin xyz="0 0 0.5" rpy="0 0 0" />
   </OS1-64>
-
-
 
 
 
@@ -736,7 +762,7 @@
      <updateRate>40</updateRate>
      <odometryTopic>odom</odometryTopic>
      <odometryFrame>odom</odometryFrame>
-     <robotBaseFrame>Rover_frame</robotBaseFrame>
+     <robotBaseFrame>CHASSIS</robotBaseFrame>
      <odometrySource>world</odometrySource>
      <publishTf>1</publishTf>
 
@@ -745,7 +771,7 @@
   <plugin name="p3d_base_controller" filename="libgazebo_ros_p3d.so">
     <alwaysOn>true</alwaysOn>
     <updateRate>50.0</updateRate>
-    <bodyName>Rover_frame</bodyName>
+    <bodyName>CHASSIS</bodyName>
     <topicName>odom</topicName>
     <gaussianNoise>0.01</gaussianNoise>
     <frameName>map</frameName>
@@ -755,7 +781,7 @@
 
   <plugin name="joint_state_publisher" filename="libgazebo_ros_joint_state_publisher.so">
     <robotNamespace>/rover</robotNamespace>
-    <jointName>BOGIE_LEFT , BOGIE_RIGHT , ROCKER_RIGHT </jointName>
+    <jointName>Base_joint, BOGIE_LEFT , BOGIE_RIGHT , ROCKER_RIGHT </jointName>
     <updateRate>100.0</updateRate>
     <alwaysOn>true</alwaysOn>
   </plugin>

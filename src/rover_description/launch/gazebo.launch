@@ -37,9 +37,15 @@
     pkg="joint_state_publisher"
     type="joint_state_publisher" />
 
-  <!-- Start the controller   -->
+  <!-- Start the wheel and base controllers -->
   <include file="$(find wheels_control)/launch/wheels_control.launch" />
 
+  <!-- Start the base stabilizer -->
+  <node name="base_PID"
+    pkg="wheels_control"
+    type="base_stabilizer.py" />
+
+  <!-- Start the odometry node-->
   <node name="odom_publisher"
     pkg="rover_description"
     type="odom_to_tf.py" />
