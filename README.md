@@ -41,3 +41,9 @@ rosrun wheels_control twist_to_wheels.py
 rosrun teleop_twist_keyboard teleop_twist_keyboard.py
 ```
 
+* To start the path planner ( u can visualise path on Rviz and use 2d-target as target )
+```bash
+roslaunch mybot_navigation nav.launch
+rosrun publishers map_differentiator
+```
+
