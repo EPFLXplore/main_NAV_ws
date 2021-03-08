@@ -8,7 +8,7 @@ ROS-Melodic !!!
 ```
 sudo apt-get update
 sudo apt-get install ros-melodic-ros-control ros-melodic-ros-controllers
-sudo apt-get install ros-melodic-roslint ros-melodic-robot-state-publisher ros-melodic-eigen-conversion ros-melodic-pcl-ros ros-melodic-tf-conversions 
+sudo apt-get install ros-melodic-roslint ros-melodic-robot-state-publisher ros-melodic-eigen-conversions ros-melodic-pcl-ros ros-melodic-tf-conversions 
 sudo apt-get install python-catkin-tools
 sudo apt install ros-melodic-joint-state-publisher-gui
 sudo apt-get install libeigen3-dev
