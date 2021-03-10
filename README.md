@@ -49,3 +49,18 @@ roslaunch mybot_navigation nav.launch
 rosrun publishers map_differentiator
 ```
 
+* to launch AR tag detection:
+```bash
+roslaunch ar_tag_toolbox ar_track_cam.launch marker_size:=9
+```
+marker_size is by default already 9.0
+
+Get the position and orientation of the AR tag:
+```bash
+rostopic echo /ar_pose_marker
+```
+
+
+
+
+
