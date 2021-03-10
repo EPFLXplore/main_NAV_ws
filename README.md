@@ -15,6 +15,7 @@ sudo apt-get install libeigen3-dev
 sudo apt-get install ros-melodic-grid-map
 sudo apt-get install ros-melodic-tf2-sensor-msgs
 sudo apt-get install ros-melodic-navigation
+sudo apt-get install ros-melodic-ar-track-alvar
 ```
 
 ## setup
