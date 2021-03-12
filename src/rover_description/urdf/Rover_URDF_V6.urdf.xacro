@@ -16,8 +16,8 @@
       <axis
       xyz="0 1 0" />
       <limit
-      lower="-1.57"
-      upper="1.57"
+      lower="-0.1"
+      upper="0.1"
       effort="100"
       velocity="10" />
       <parent link="CHASSIS"/>
@@ -141,6 +141,7 @@
       upper="3.14"
       effort="100"
       velocity="30" />
+      <dynamics friction="10000"/>
   </joint>
   <link
     name="WHEEL_LEFT_1">
@@ -252,7 +253,7 @@
       upper="3.14"
       effort="0"
       velocity="0" />
-    <dynamics damping ="50"/>
+    <dynamics friction="10"/>
   </joint>
   <link
     name="WHEEL_LEFT_2">
@@ -417,6 +418,7 @@
       upper="3.14"
       effort="0"
       velocity="0" />
+      <dynamics friction="10000"/>
   </joint>
   <link
     name="WHEEL_RIGHT_1">
@@ -528,7 +530,7 @@
       upper="3.14"
       effort="0"
       velocity="0" />
-    <dynamics damping ="50"/>
+    <dynamics friction="10"/>
   </joint>
   <link
     name="WHEEL_RIGHT_2">
@@ -720,7 +722,7 @@
  <link name="camera_link">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0" />
-      <mass value="1" />
+      <mass value="1e-5" />
       <!-- RANDOM INERTIA BELOW -->
       <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
     </inertial>
