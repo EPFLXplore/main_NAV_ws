@@ -7,7 +7,7 @@
 	<arg name="cam_info_topic" default="/camera1/camera_info" />
 	<arg name="output_frame" default="/camera_link" />
 
-	<node pkg="tf" type="static_transform_publisher" name="world_frames_connection" args="0 0 0 0 0 0 /camera_link /ar_marker_0 100" />
+	<!-- <node pkg="tf" type="static_transform_publisher" name="world_frames_connection" args="0 0 0 0 0 0 /camera_link /ar_marker_0 100" /> -->
 
 	<node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="false" output="screen">
 		<param name="marker_size"           type="double" value="$(arg marker_size)" />
