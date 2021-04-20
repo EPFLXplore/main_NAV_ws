@@ -158,6 +158,11 @@ catkin_install_python(PROGRAMS
 )
 
 catkin_install_python(PROGRAMS
+   twist_to_wheels_test.py
+   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+catkin_install_python(PROGRAMS
    base_stabilizer.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

@@ -53,6 +53,7 @@ include_directories(
     ${Boost_INCLUDE_DIRS}
     ${catkin_INCLUDE_DIRS}
     ${Eigen_INCLUDE_DIRS}
+ /usr/include/opencv4	
 )
 
 ###########

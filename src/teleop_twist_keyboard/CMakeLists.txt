@@ -12,3 +12,8 @@ catkin_install_python(PROGRAMS
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+catkin_install_python(PROGRAMS
+   teleop_twist_keyboard_test.py
+   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
