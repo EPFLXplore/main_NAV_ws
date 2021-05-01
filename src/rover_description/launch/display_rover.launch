@@ -8,9 +8,8 @@
   <node name="robot_state_publisher"
     pkg="robot_state_publisher"
     type="robot_state_publisher" />
-  <node name="rviz"
-    pkg="rviz"
-    type="rviz"
-    args="-d $(find rover_description)/urdf.rviz" />
-
+  <node type="rviz"
+	name="rviz"
+	pkg="rviz"
+	args="-d $(find rover_description)/config/default_rover.rviz" />
 </launch>
