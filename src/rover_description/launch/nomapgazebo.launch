@@ -51,10 +51,20 @@
     pkg="rover_description"
     type="odom_to_tf.py" />
 
-  <!-- Start the odometry node-->
+  <!-- Start the odometry node
   <node name="noisy_odom"
     pkg="kalman"
-    type="noisy_odom.py" />
+    type="noisy_odom.py" /> -->
+
+  <!-- Start the noisy pose node -->
+  <node name="noisy_pose"
+    pkg="kalman"
+    type="noisy_pose.py" /> 
+
+  <!-- Start the noisy velocity node -->
+  <node name="noisy_velocity"
+    pkg="kalman"
+    type="noisy_velocity.py" /> 
 
   <!-- Place map frame at odometry frame (UNCOMMENT THIS IF MAP NOT DECLARED IN NAV.LAUNCH)--> 
   <node pkg="tf" type="static_transform_publisher" name="map_odom_broadcaster"
