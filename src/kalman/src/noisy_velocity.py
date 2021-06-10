@@ -36,6 +36,10 @@ class NoisyVelocity:
         self.R_to_WR1 = None
         self.R_to_WR2 = None
         self.R_to_WR3 = None
+        self.R_to_wheels = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+
+        # Complementary to slip angles [rad]
+        self.theta = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
         # Slip angles [rad]
         self.alpha_WL1 = None
@@ -47,7 +51,7 @@ class NoisyVelocity:
         self.slip_angles = []
 
         # Flags
-        self.verbose = False
+        self.verbose = True
         self.pure_linear = None
         self.pure_rotation = None
         self.combined_motion = None
@@ -147,30 +151,49 @@ class NoisyVelocity:
         self.R_to_WR2 = self.R + rover.RF_to_WR2
         self.R_to_WR3 = self.R + rover.RF_to_WR3
 
+        self.R_to_wheels = np.array([self.R_to_WL1, self.R_to_WL2, self.R_to_WL3, self.R_to_WR1, self.R_to_WR2, self.R_to_WR3,])
+
         if self.verbose:
             print("R to WL1 = " + str(self.R_to_WL1))
 
     def calculate_slip_angles(self):
 
-        theta_wl1 = math.acos(
+        """ Slip angles require the wheels to rotate, but for some reason one or several wheels don't rotate the
+        corresponding lin_vel will be zero A condition to check whether the wheels are turning or not is then set to
+        take the previous value of theta, thus avoiding the program to crash because of a division by 0 """
+        """
+        if np.any(self.wheels_x_vel == 0):
+
+            j1 = np.where(self.wheels_x_vel == 0)  # Find where the 0 speeds are
+            for k in j1:
+                self.theta[k] = self.theta[k]  # Assign the previous value of theta to the corresponding wheels
+
+        elif np.any(self.wheels_x_vel != 0):
+            j2 = np.where(self.wheels_x_vel != 0)
+
+            for k in j2:
+                self.theta[k] = math.acos(
+                    np.dot(self.R_to_wheels[k], self.wheels_x_vel[k]) / (linalg.norm(self.R_to_wheels[k]) * linalg.norm(self.wheels_x_vel[k])))
+        """
+        self.theta[0] = math.acos(
             np.dot(self.R_to_WL1, self.WL1_lin_vel) / (linalg.norm(self.R_to_WL1) * linalg.norm(self.WL1_lin_vel)))
-        theta_wl2 = math.acos(
+        self.theta[1] = math.acos(
             np.dot(self.R_to_WL2, self.WL2_lin_vel) / (linalg.norm(self.R_to_WL2) * linalg.norm(self.WL2_lin_vel)))
-        theta_wl3 = math.acos(
+        self.theta[2] = math.acos(
             np.dot(self.R_to_WL3, self.WL3_lin_vel) / (linalg.norm(self.R_to_WL3) * linalg.norm(self.WL3_lin_vel)))
-        theta_wr1 = math.acos(
+        self.theta[3] = math.acos(
             np.dot(self.R_to_WR1, self.WR1_lin_vel) / (linalg.norm(self.R_to_WR1) * linalg.norm(self.WR1_lin_vel)))
-        theta_wr2 = math.acos(
+        self.theta[4] = math.acos(
             np.dot(self.R_to_WR2, self.WR2_lin_vel) / (linalg.norm(self.R_to_WR2) * linalg.norm(self.WR2_lin_vel)))
-        theta_wr3 = math.acos(
+        self.theta[5] = math.acos(
             np.dot(self.R_to_WR3, self.WR3_lin_vel) / (linalg.norm(self.R_to_WR3) * linalg.norm(self.WR3_lin_vel)))
 
-        self.alpha_WL1 = math.pi / 2 - theta_wl1
-        self.alpha_WL2 = math.pi / 2 - theta_wl2
-        self.alpha_WL3 = math.pi / 2 - theta_wl3
-        self.alpha_WR1 = math.pi / 2 - theta_wr1
-        self.alpha_WR2 = math.pi / 2 - theta_wr2
-        self.alpha_WR3 = math.pi / 2 - theta_wr3
+        self.alpha_WL1 = math.pi / 2 - self.theta[0]
+        self.alpha_WL2 = math.pi / 2 - self.theta[1]
+        self.alpha_WL3 = math.pi / 2 - self.theta[2]
+        self.alpha_WR1 = math.pi / 2 - self.theta[3]
+        self.alpha_WR2 = math.pi / 2 - self.theta[4]
+        self.alpha_WR3 = math.pi / 2 - self.theta[5]
 
         self.slip_angles = [self.alpha_WL1, self.alpha_WL2, self.alpha_WL3, self.alpha_WR1, self.alpha_WR2,
                             self.alpha_WR3]
@@ -303,12 +326,12 @@ class NoisyVelocity:
 if __name__ == '__main__':
     rospy.init_node('noisy_velocity_node', anonymous=True)
     noisy_velocity_object = NoisyVelocity()
-    rate = rospy.Rate(10)
-    try:
-        # noisy_velocity_object.listen()
-        while not rospy.is_shutdown():
+    rate = rospy.Rate(50)
+
+    while not rospy.is_shutdown():
+        try:
+            # noisy_pose_object.listen()
             noisy_velocity_object.publish_noisy_velocity()
             rate.sleep()
-
-    except rospy.ROSInterruptException:
-        pass
+        except rospy.logwarn("Div by 0 detected"):
+            pass

@@ -3,10 +3,11 @@
 
 """ Covariance noise for LIDAR data (xy pose)"""
 
-noise_var = 0.05  # m
+noise_xy_var = 0.2  # m
+noise_yaw_var = 0.01  # rad
 
 """ Covariance noise for encoders (odometry) data"""
 
-cov_vel_x = 1  # m/s
-cov_vel_y = 1  # m/s
-cov_vel_yaw = 1  # rad/s
+cov_vel_x = 0.5  # m/s
+cov_vel_y = 0.5  # m/s
+cov_vel_yaw = 0.1  # rad/s

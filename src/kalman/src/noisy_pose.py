@@ -12,56 +12,54 @@ import rospy
 import pose_vel_covariances as cov
 
 
-def callback(msg):
-    # save the odometry message and call add_noise() function
-    odom_msg = msg
-    pub = rospy.Publisher('/noisy_pose', PoseWithCovarianceStamped, queue_size=1)
-    noisy_odom_msg = PoseWithCovarianceStamped()
-    # Creating the message with the type PoseWithCovarianceStamped
-    # filling header with relevant information
-    noisy_odom_msg.header.frame_id = "odom"
-    noisy_odom_msg.header.stamp = rospy.Time.now()
-    # filling payload with relevant information gathered from subscribing
-    # to initialpose topic published by RVIZ via rostopic echo initialpose
+class NoisyPose:
+    def __init__(self):
+        self.noisy_pose = PoseWithCovarianceStamped()
+        self.odom_msg = Odometry()
+        self.noisy_pose_pub = rospy.Publisher('/noisy_pose', PoseWithCovarianceStamped, queue_size=10)
+        self.odom_sub = rospy.Subscriber('/odom', Odometry, self.odom_callback, queue_size=10)
+        self.noisy_pose.header.frame_id = "odom"
 
-    # noisy_odom_msg.pose.pose = odom_msg.pose.pose
-    noisy_odom_msg.pose.pose.position.x = odom_msg.pose.pose.position.x + np.random.normal(0, cov.noise_var)
-    noisy_odom_msg.pose.pose.position.y = odom_msg.pose.pose.position.y + np.random.normal(0, cov.noise_var)
-    noisy_odom_msg.pose.pose.position.z = odom_msg.pose.pose.position.z + np.random.normal(0, cov.noise_var)
-    #
-    noisy_odom_msg.pose.pose.orientation.x = odom_msg.pose.pose.orientation.x
-    noisy_odom_msg.pose.pose.orientation.y = odom_msg.pose.pose.orientation.y
-    noisy_odom_msg.pose.pose.orientation.z = odom_msg.pose.pose.orientation.z
-    noisy_odom_msg.pose.pose.orientation.w = odom_msg.pose.pose.orientation.w
+    def odom_callback(self, msg):
+        # save the odometry message and call add_noise() function
+        self.odom_msg = msg
 
-    noisy_odom_msg.pose.covariance[0] = cov.noise_var
-    noisy_odom_msg.pose.covariance[7] = cov.noise_var
-    noisy_odom_msg.pose.covariance[1:7] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    noisy_odom_msg.pose.covariance[8:34] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                            0.0, 0.0, 0.0, 0.0, 0.0,
-                                            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    noisy_odom_msg.pose.covariance[35] = 0
+    def add_noise(self):
+        # Creating the message with the type PoseWithCovarianceStamped
+        # filling header with relevant information
 
-    pub.publish(noisy_odom_msg)
+        self.noisy_pose.header.stamp = rospy.Time.now()
 
+        # self.noisy_pose.pose.pose = odom_msg.pose.pose
+        self.noisy_pose.pose.pose.position.x = self.odom_msg.pose.pose.position.x + np.random.normal(0, cov.noise_xy_var)
+        self.noisy_pose.pose.pose.position.y = self.odom_msg.pose.pose.position.y + np.random.normal(0, cov.noise_xy_var)
+        self.noisy_pose.pose.pose.position.z = self.odom_msg.pose.pose.position.z + np.random.normal(0, cov.noise_xy_var)
+        #
+        self.noisy_pose.pose.pose.orientation.x = self.odom_msg.pose.pose.orientation.x
+        self.noisy_pose.pose.pose.orientation.y = self.odom_msg.pose.pose.orientation.y
+        self.noisy_pose.pose.pose.orientation.z = self.odom_msg.pose.pose.orientation.z
+        self.noisy_pose.pose.pose.orientation.w = self.odom_msg.pose.pose.orientation.w
 
-def NoisyPose():
-    odom_msg = Odometry()
+        self.noisy_pose.pose.covariance[0] = cov.noise_xy_var
+        self.noisy_pose.pose.covariance[7] = cov.noise_xy_var
+        self.noisy_pose.pose.covariance[1:7] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.noisy_pose.pose.covariance[8:34] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                                 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.noisy_pose.pose.covariance[35] = 0.0
 
-    noise_var = 0.25
-    ctrl_c = False
-    rate = rospy.Rate(5)
-    # create()
-    # loop to publish the noisy odometry values
-    while not rospy.is_shutdown():
-        odom_subscriber = rospy.Subscriber('/odom', Odometry, callback)
-        rate.sleep()
+    def publish_noisy_pose(self):
+        self.add_noise()
+        self.noisy_pose_pub.publish(self.noisy_pose)
 
 
 if __name__ == '__main__':
-    rospy.init_node('noisy_pose')
-    rospy.loginfo("This node takes the perfect pose from ROS and adds noise through covariance matrix")
-    try:
-        NoisyPose()
-    except rospy.ROSInterruptException:
-        pass
+    rospy.init_node('noisy_pose_node', anonymous=True)
+    noisy_pose_object = NoisyPose()
+    rate = rospy.Rate(20)
+
+    while not rospy.is_shutdown():
+        try:
+            noisy_pose_object.publish_noisy_pose()
+            rate.sleep()
+        except rospy.logwarn("Problem occurred in Noisy Pose"):
+            pass
