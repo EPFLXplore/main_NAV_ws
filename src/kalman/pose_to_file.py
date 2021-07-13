@@ -10,6 +10,7 @@ import rospy
 # from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import PoseWithCovarianceStamped
+from geometry_msgs.msg import TwistWithCovarianceStamped
 from nav_msgs.msg import Odometry
 
 
@@ -18,12 +19,12 @@ class SavePoses(object):
         self.delay_before_logging = 2  # in seconds
         self.logging_time = 65  # in seconds
         """ Pose values """
-        self._pose_x_true = Pose()
-        self._pose_y_true = Pose()
-        self._pose_x_noisy = PoseWithCovarianceStamped()
-        self._pose_y_noisy = PoseWithCovarianceStamped()
-        self._pose_x_filtered = Pose()
-        self._pose_y_filtered = Pose()
+        self._pose_x_true = 0
+        self._pose_y_true = 0
+        self._pose_x_noisy = 0
+        self._pose_y_noisy = 0
+        self._pose_x_filtered = 0
+        self._pose_y_filtered = 0
         self.pose_log_xy = [[], [], [], [], [], []]  # [[true_x], [true_y], [noisy_x], [noisy_y], [filtered_x],
         # [filtered_y]]
 
@@ -47,10 +48,12 @@ class SavePoses(object):
         self.x_var_filtered = 0
         self.y_var_filtered = 0
 
+        self.time_log = []
+
         self._pose_sub_true = rospy.Subscriber('/odom', Odometry, self.callback_true_pose)  # true pose subscriber
         self._pose_sub_noisy = rospy.Subscriber('/noisy_pose', PoseWithCovarianceStamped, self.callback_noisy_pose)  # noisy pose
         # subscriber
-        self._vel_sub_noisy = rospy.Subscriber('/noisy_velocity', PoseWithCovarianceStamped, self.callback_noisy_vel)  # noisy pose
+        self._vel_sub_noisy = rospy.Subscriber('/noisy_velocity', TwistWithCovarianceStamped, self.callback_noisy_vel)  # noisy pose
         self._pose_sub_filtered = rospy.Subscriber('/odometry/filtered', Odometry, self.callback_filtered)
         # filtered pose subscriber
 
@@ -88,10 +91,10 @@ class SavePoses(object):
 
     def calculate_variances(self):
 
-        self.x_var_meas = np.var(self.pose_log_xy[2])
-        self.y_var_meas = np.var(self.pose_log_xy[3])
-        self.x_var_filtered = np.var(self.pose_log_xy[4])
-        self.y_var_filtered = np.var(self.pose_log_xy[5])
+        self.x_var_meas = round(np.var(self.err_log[0]), 3)
+        self.x_var_filtered = round(np.var(self.err_log[1]), 4)
+        self.y_var_meas = round(np.var(self.err_log[2]), 3)
+        self.y_var_filtered = round(np.var(self.err_log[3]), 4)
 
     def log_pose(self):
         # Output: logs of all the trajectory wanted in the plot
@@ -104,6 +107,7 @@ class SavePoses(object):
         t = time.time()
         while t-t_start <= self.logging_time:
             # used try so that if user pressed other than the given key error will not be shown
+            """ Save poses """
             self.pose_log_xy[0].append(self._pose_x_true)
             self.pose_log_xy[1].append(self._pose_y_true)
             self.pose_log_xy[2].append(self._pose_x_noisy)
@@ -111,6 +115,7 @@ class SavePoses(object):
             self.pose_log_xy[4].append(self._pose_x_filtered)
             self.pose_log_xy[5].append(self._pose_y_filtered)
 
+            """ Save velocities """
             self.velocity_log[0].append(self._vx_true)
             self.velocity_log[1].append(self._vy_true)
             self.velocity_log[2].append(self._ang_vel_true)
@@ -121,10 +126,13 @@ class SavePoses(object):
             self.velocity_log[7].append(self._vy_true)
             self.velocity_log[8].append(self._ang_vel_true)
 
+            """ Save errors in pose """
             self.err_log[0].append(self._pose_x_true - self._pose_x_noisy)
             self.err_log[1].append(self._pose_x_true - self._pose_x_filtered)
             self.err_log[2].append(self._pose_y_true - self._pose_y_noisy)
             self.err_log[3].append(self._pose_y_true - self._pose_y_filtered)
+
+            self.time_log.append(t-t_start)
 
             time.sleep(0.05)
             rospy.loginfo("Remaining time: {} / {} s".format(int(t-t_start), self.logging_time))
@@ -151,28 +159,78 @@ class SavePoses(object):
         plt.savefig("src/kalman/plots/pdf/{}.pdf".format(str(datetime.datetime.now())))
         plt.savefig("src/kalman/plots/{}.png".format(str(datetime.datetime.now())))
 
-        plt.figure("Err x")
-        plt.plot(range(len(self.err_log[0])), self.err_log[0], label="Measured: {}".format(self.x_var_meas))
-        plt.plot(range(len(self.err_log[1])), self.err_log[1], label="Filtered: {}".format(self.x_var_filtered))
-        plt.grid(True)
-        plt.legend(loc='best')
-        plt.xlabel('Number of samples')
-        plt.ylabel('Error [m]')
-        plt.title('Error in x')
+        fig = plt.figure("Error")
+        fig.suptitle('Errors in x & y directions')
+        ax1 = fig.add_subplot(2, 1, 1)
+        # ax1.title('Error in x & y direction')
+        ax1.plot(range(len(self.err_log[0])), self.err_log[0], label=r"Measured: $\sigma^2$ = {}".format(self.x_var_meas))
+        ax1.plot(range(len(self.err_log[1])), self.err_log[1], label=r"Filtered: $\sigma^2$ = {}".format(self.x_var_filtered))
+        plt.setp(ax1.get_xticklabels(), visible=False)
+
+        ax1.grid(True)
+        ax1.legend(loc='best')
+        ax1.set_ylabel('Error in x [m]')
+
+        ax2 = fig.add_subplot(2, 1, 2, sharex=ax1)
+        ax2.plot(range(len(self.err_log[2])), self.err_log[2], label=r"Measured: $\sigma^2$ = {}".format(self.y_var_meas))
+        ax2.plot(range(len(self.err_log[3])), self.err_log[3], label=r"Filtered: $\sigma^2$ = {}".format(self.y_var_filtered))
+        ax2.grid(True)
+        ax2.legend(loc='best')
+        ax2.set_xlabel('Number of samples')
+        ax2.set_ylabel('Error in y [m]')
+
         plt.show(block=False)
 
         plt.savefig("src/kalman/plots/svg/{}.svg".format(str(datetime.datetime.now())))
         plt.savefig("src/kalman/plots/pdf/{}.pdf".format(str(datetime.datetime.now())))
         plt.savefig("src/kalman/plots/{}.png".format(str(datetime.datetime.now())))
 
-        plt.figure("Err y")
-        plt.plot(range(len(self.err_log[2])), self.err_log[2], label="Measured: {}".format(self.y_var_meas))
-        plt.plot(range(len(self.err_log[3])), self.err_log[3], label="Filtered: {}".format(self.y_var_filtered))
+        plt.figure("Vx")
+        plt.plot(range(len(self.velocity_log[0])), self.velocity_log[0], label='True')
+        plt.scatter(range(len(self.velocity_log[3])), self.velocity_log[3], label='Estimated', marker='.', color='orange')
+        # plt.scatter(self.time_log, self.velocity_log[6], label='Filtered', marker='.', color='green')
+        # plt.scatter(self.pose_log_xy[0][0], self.pose_log_xy[1][0], label='Start', color='red')
+
         plt.grid(True)
         plt.legend(loc='best')
         plt.xlabel('Number of samples')
-        plt.ylabel('Error [m]')
-        plt.title('Error in y')
+        plt.ylabel('vx [m/s]')
+        plt.title('Velocity in x direction')
+        plt.show(block=False)
+
+        plt.savefig("src/kalman/plots/svg/{}.svg".format(str(datetime.datetime.now())))
+        plt.savefig("src/kalman/plots/pdf/{}.pdf".format(str(datetime.datetime.now())))
+        plt.savefig("src/kalman/plots/{}.png".format(str(datetime.datetime.now())))
+
+        plt.figure("Vy")
+        plt.plot(range(len(self.velocity_log[1])), self.velocity_log[1], label='True')
+        plt.scatter(range(len(self.velocity_log[1])), self.velocity_log[4], label='Estimated', marker='.', color='orange')
+        # plt.scatter(self.time_log, self.velocity_log[7], label='Filtered', marker='.', color='green')
+        # plt.scatter(self.pose_log_xy[0][0], self.pose_log_xy[1][0], label='Start', color='red')
+
+        plt.grid(True)
+        plt.legend(loc='best')
+        plt.xlabel('Number of samples')
+        plt.ylabel('vy [m/s]')
+        plt.title('Velocity in y direction')
+        plt.show(block=False)
+
+        plt.savefig("src/kalman/plots/svg/{}.svg".format(str(datetime.datetime.now())))
+        plt.savefig("src/kalman/plots/pdf/{}.pdf".format(str(datetime.datetime.now())))
+        plt.savefig("src/kalman/plots/{}.png".format(str(datetime.datetime.now())))
+
+        plt.figure("Angular velocity")
+        plt.plot(range(len(self.velocity_log[2])), self.velocity_log[2], label='True', zorder=1)
+        plt.scatter(range(len(self.velocity_log[5])), self.velocity_log[5], label='Estimated', marker='.', color='orange',
+                    zorder=2)
+        # plt.scatter(self.time_log, self.velocity_log[7], label='Filtered', marker='.', color='green', zorder=3)
+        # plt.scatter(self.pose_log_xy[0][0], self.pose_log_xy[1][0], label='Start', color='red')
+
+        plt.grid(True)
+        plt.legend(loc='best')
+        plt.xlabel('Number of samples')
+        plt.ylabel(r'$\omega$ [rad/s]')
+        plt.title('Angular velocity')
         plt.show(block=False)
 
         plt.savefig("src/kalman/plots/svg/{}.svg".format(str(datetime.datetime.now())))

@@ -18,9 +18,9 @@
   </node>
 
 
-  <!-- Place map frame at odometry frame -->
+  <!-- Place map frame at odometry frame (UNCOMMENT THIS IF MAP NOT DECLARED IN GAZEBO.LAUNCH)
   <node pkg="tf" type="static_transform_publisher" name="map_odom_broadcaster"
-      args="0 0 0 0 0 0 map odom 100"/>
+      args="0 0 0 0 0 0 map odom 100"/> -->
 
   <!-- Localization -->
   <!--<node pkg="amcl" type="amcl" name="amcl" output="screen">

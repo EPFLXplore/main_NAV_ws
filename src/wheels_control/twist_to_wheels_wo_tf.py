@@ -94,7 +94,7 @@ def compute_velocity(lin_v, ang_v, pots=None):
         icr_2_wheel_L_2 = np.linalg.norm(icr - wheel_L_2)
         icr_2_wheel_L_3 = np.linalg.norm(icr - wheel_L_3)
     
-        print(icr_2_wheel_R_1, icr_2_wheel_R_2,icr_2_wheel_R_3,icr_2_wheel_L_1,icr_2_wheel_L_2,icr_2_wheel_L_3)
+        print(icr_2_wheel_R_1, icr_2_wheel_R_2, icr_2_wheel_R_3, icr_2_wheel_L_1, icr_2_wheel_L_2, icr_2_wheel_L_3)
 
         #scale_factor = np.max([icr_2_wheel_R_1, icr_2_wheel_R_2,icr_2_wheel_R_3,icr_2_wheel_L_1,icr_2_wheel_L_2,icr_2_wheel_L_3])
 

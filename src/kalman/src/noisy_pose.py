@@ -3,10 +3,13 @@
 # ROS stuff
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from nav_msgs.msg import Odometry
+from tf.transformations import euler_from_quaternion
+from tf.transformations import quaternion_from_euler
 
 # Standards libs
 import numpy as np
 import rospy
+import time
 
 # Custom values
 import pose_vel_covariances as cov
@@ -34,11 +37,12 @@ class NoisyPose:
         self.noisy_pose.pose.pose.position.x = self.odom_msg.pose.pose.position.x + np.random.normal(0, cov.noise_xy_var)
         self.noisy_pose.pose.pose.position.y = self.odom_msg.pose.pose.position.y + np.random.normal(0, cov.noise_xy_var)
         self.noisy_pose.pose.pose.position.z = self.odom_msg.pose.pose.position.z + np.random.normal(0, cov.noise_xy_var)
-        #
+
         self.noisy_pose.pose.pose.orientation.x = self.odom_msg.pose.pose.orientation.x
         self.noisy_pose.pose.pose.orientation.y = self.odom_msg.pose.pose.orientation.y
         self.noisy_pose.pose.pose.orientation.z = self.odom_msg.pose.pose.orientation.z
         self.noisy_pose.pose.pose.orientation.w = self.odom_msg.pose.pose.orientation.w
+
 
         self.noisy_pose.pose.covariance[0] = cov.noise_xy_var
         self.noisy_pose.pose.covariance[7] = cov.noise_xy_var

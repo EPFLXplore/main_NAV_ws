@@ -7,6 +7,7 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from control_msgs.msg import JointControllerState
 from sensor_msgs.msg import JointState
+from tf.transformations import euler_from_quaternion
 
 # Standard libraries
 import numpy as np
@@ -55,6 +56,8 @@ class NoisyVelocity:
         self.pure_linear = None
         self.pure_rotation = None
         self.combined_motion = None
+        self.turn_right = None
+        self.turn_left = None
 
         self.prev_time = 0
 
@@ -66,9 +69,12 @@ class NoisyVelocity:
         self.v_ang_est = 0
         self.velocity_est = TwistWithCovarianceStamped()
         self.yaw_est = 0
+        self.wheels_rotational_speed = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])  # rad/s
         self.wheels_ang_vel = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])  # rad/s
-        self.wheels_x_vel = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])  # m/s
+        self.wheels_x_vel_single = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])  # m/s
+        self.wheels_x_vel_vectors = None
         self.wheels_y_vel = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])  # m/s
+        self.wheels_norm_vel = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])  # m/s norm of each wheel velocity vector
         self.WL1_lin_vel = np.array([0.0, 0.0, 0.0])
         self.WL2_lin_vel = np.array([0.0, 0.0, 0.0])
         self.WL3_lin_vel = np.array([0.0, 0.0, 0.0])
@@ -88,23 +94,35 @@ class NoisyVelocity:
     def callback_gd_truth(self, msg):
         """ Ground truth from ROS """
         self.v_true = [msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.angular.z]
-        self.yaw_true = msg.pose.pose.orientation.z
+        """ Convert default quaternion to rad angle"""
+        orientation_q = msg.pose.pose.orientation
+        orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
+        self.yaw_true = euler_from_quaternion(orientation_list)[2]
 
     def command_callback(self, msg):
         """ Load desired turn radius (hypothesis: it is known)"""
         # Calculates the commanded turn radius based on desired forward and angular velocity
         # print("Fwd vel = " + str(msg.linear.x))
         # print("Ang vel = " + str(msg.angular.z))
-        v = msg.linear.x # Desired linear velocity
-        omega = msg.angular.z #
+        v = msg.linear.x  # Desired linear velocity
+        omega = msg.angular.z  # Desired angular velocity
         if omega != 0:
             """ Non-zero rotation speed command """
             self.R[1] = v / omega
+
+            if omega < 0:
+                self.turn_right = True
+                self.turn_left = False
+            elif omega > 0:
+                self.turn_right = False
+                self.turn_left = True
+
             if v == 0:
                 """ Pure rotation """
                 self.pure_rotation = True
                 self.pure_linear = False
                 self.combined_motion = False
+
             else:
                 """ Combined motion """
                 self.pure_rotation = False
@@ -113,7 +131,10 @@ class NoisyVelocity:
         else:
             """ Pure linear """
             self.R[1] = 100000  # Veeery large R for forward motion
+
             self.pure_rotation = False
+            self.turn_right = False
+            self.turn_left = False
             self.pure_linear = True
             self.combined_motion = False
 
@@ -125,19 +146,21 @@ class NoisyVelocity:
             return
         else:
             # Forward motion
-            self.wheels_ang_vel = np.array(msg.velocity[-(len(msg.velocity) - 1):])
+            self.wheels_rotational_speed = np.array(msg.velocity[-(len(msg.velocity) - 1):])
 
-            self.WL1_lin_vel[0] = w_radius * self.wheels_ang_vel[0]
-            self.WL2_lin_vel[0] = w_radius * self.wheels_ang_vel[1]
-            self.WL3_lin_vel[0] = w_radius * self.wheels_ang_vel[2]
-            self.WR1_lin_vel[0] = w_radius * self.wheels_ang_vel[3]
-            self.WR2_lin_vel[0] = w_radius * self.wheels_ang_vel[4]
-            self.WR3_lin_vel[0] = w_radius * self.wheels_ang_vel[5]
+            self.WL1_lin_vel[0] = w_radius * self.wheels_rotational_speed[0]
+            self.WL2_lin_vel[0] = w_radius * self.wheels_rotational_speed[1]
+            self.WL3_lin_vel[0] = w_radius * self.wheels_rotational_speed[2]
+            self.WR1_lin_vel[0] = w_radius * self.wheels_rotational_speed[3]
+            self.WR2_lin_vel[0] = w_radius * self.wheels_rotational_speed[4]
+            self.WR3_lin_vel[0] = w_radius * self.wheels_rotational_speed[5]
 
-            self.wheels_x_vel = np.array([self.WL1_lin_vel[0], self.WL2_lin_vel[0], self.WL3_lin_vel[0],
-                                          self.WR1_lin_vel[0], self.WR2_lin_vel[0], self.WR3_lin_vel[0]])
+            self.wheels_x_vel_single = np.array([self.WL1_lin_vel[0], self.WL2_lin_vel[0], self.WL3_lin_vel[0],
+                                                 self.WR1_lin_vel[0], self.WR2_lin_vel[0], self.WR3_lin_vel[0]])
+            self.wheels_x_vel_vectors = np.array([self.WL1_lin_vel, self.WL2_lin_vel, self.WL3_lin_vel,
+                                                  self.WR1_lin_vel, self.WR2_lin_vel, self.WR3_lin_vel])
             # if self.verbose:
-            # print("wheels lin vel = " + str(self.wheels_x_vel))
+            # print("wheels lin vel = " + str(self.wheels_x_vel_single))
 
     def r_to_wheels(self):
         """ Calculates vector from ICR to center of each wheel """
@@ -151,29 +174,35 @@ class NoisyVelocity:
         self.R_to_WR2 = self.R + rover.RF_to_WR2
         self.R_to_WR3 = self.R + rover.RF_to_WR3
 
-        self.R_to_wheels = np.array([self.R_to_WL1, self.R_to_WL2, self.R_to_WL3, self.R_to_WR1, self.R_to_WR2, self.R_to_WR3,])
+        self.R_to_wheels = np.array([self.R_to_WL1, self.R_to_WL2, self.R_to_WL3,
+                                     self.R_to_WR1, self.R_to_WR2, self.R_to_WR3])
 
-        if self.verbose:
-            print("R to WL1 = " + str(self.R_to_WL1))
+        # if self.verbose:
+        #     print("R to WL1 = " + str(self.R_to_wheels[0]))
 
     def calculate_slip_angles(self):
 
         """ Slip angles require the wheels to rotate, but for some reason one or several wheels don't rotate the
         corresponding lin_vel will be zero A condition to check whether the wheels are turning or not is then set to
         take the previous value of theta, thus avoiding the program to crash because of a division by 0 """
-        """
-        if np.any(self.wheels_x_vel == 0):
+        if np.any(self.wheels_x_vel_single == 0):
 
-            j1 = np.where(self.wheels_x_vel == 0)  # Find where the 0 speeds are
+            j1 = np.where(self.wheels_x_vel_single == 0)  # Ouput a tuple with array object in it  = impossible iterate
+            j1 = np.asarray(j1)[0]  # transform tuple in simple array = possible to iterate
             for k in j1:
-                self.theta[k] = self.theta[k]  # Assign the previous value of theta to the corresponding wheels
+                self.theta[k] = self.theta[
+                    k]  # Assign the previous value of theta to the corresponding non-moving wheels
 
-        elif np.any(self.wheels_x_vel != 0):
-            j2 = np.where(self.wheels_x_vel != 0)
-
+        elif np.any(self.wheels_x_vel_single != 0):
+            j2 = np.where(self.wheels_x_vel_single != 0)  # Ouput a tuple with array object in it  = impossible iterate
+            j2 = np.asarray(j2)[0]  # transform tuple in simple array = possible to iterate
             for k in j2:
+                # print("j2 =  " + str(j2))
+                # print("x wheel = " + str(self.wheels_x_vel_vectors))
+                # print("R blbl = " + str(self.R_to_wheels))
                 self.theta[k] = math.acos(
-                    np.dot(self.R_to_wheels[k], self.wheels_x_vel[k]) / (linalg.norm(self.R_to_wheels[k]) * linalg.norm(self.wheels_x_vel[k])))
+                    np.dot(self.R_to_wheels[k], self.wheels_x_vel_vectors[k]) / (
+                            linalg.norm(self.R_to_wheels[k]) * linalg.norm(self.wheels_x_vel_vectors[k])))
         """
         self.theta[0] = math.acos(
             np.dot(self.R_to_WL1, self.WL1_lin_vel) / (linalg.norm(self.R_to_WL1) * linalg.norm(self.WL1_lin_vel)))
@@ -187,7 +216,7 @@ class NoisyVelocity:
             np.dot(self.R_to_WR2, self.WR2_lin_vel) / (linalg.norm(self.R_to_WR2) * linalg.norm(self.WR2_lin_vel)))
         self.theta[5] = math.acos(
             np.dot(self.R_to_WR3, self.WR3_lin_vel) / (linalg.norm(self.R_to_WR3) * linalg.norm(self.WR3_lin_vel)))
-
+        """
         self.alpha_WL1 = math.pi / 2 - self.theta[0]
         self.alpha_WL2 = math.pi / 2 - self.theta[1]
         self.alpha_WL3 = math.pi / 2 - self.theta[2]
@@ -197,9 +226,9 @@ class NoisyVelocity:
 
         self.slip_angles = [self.alpha_WL1, self.alpha_WL2, self.alpha_WL3, self.alpha_WR1, self.alpha_WR2,
                             self.alpha_WR3]
-        if self.verbose:
-            print("alpha WL1 = " + str(math.degrees(self.alpha_WL1)))
-            print("alpha WR1 = " + str(math.degrees(self.alpha_WR1)))
+        # if self.verbose:
+        #     print("alpha WL1 = " + str(math.degrees(self.alpha_WL1)))
+        #     print("alpha WR1 = " + str(math.degrees(self.alpha_WR1)))
 
     def calculate_xy_velocity(self):
         """ Calculate vx, vy in the rover frame (rf) and then transform it to the global frame using the yaw angle
@@ -209,38 +238,39 @@ class NoisyVelocity:
         3) Now the norm of the velocity (rf) can be known and converted to the global frame using the yaw angle"""
 
         """ Velocity in x direction (forward) """
-        left_side = self.wheels_x_vel[0:3]
-        right_side = self.wheels_x_vel[3::]
-        if self.verbose:
-            print("wheels x vel 1 = " + str(self.wheels_x_vel))
+        left_side = self.wheels_x_vel_single[0:3]
+        right_side = self.wheels_x_vel_single[3::]
+        # if self.verbose:
+        #     print("wheels x vel 1 = " + str(self.wheels_x_vel_single))
         """ The motors for each side are mirrored, so for straight motion their sign is opposite. Need to have them the 
         same to calculate forward velocity """
 
         if not self.pure_rotation:
 
             if (left_side > 0).all() and (right_side < 0).all():
-                self.wheels_x_vel[3::] = -right_side
+                self.wheels_x_vel_single[3::] = -right_side
 
             if (left_side < 0).all() and (right_side > 0).all():
-                self.wheels_x_vel[3::] = -right_side
+                self.wheels_x_vel_single[3::] = -right_side
 
         elif self.pure_rotation:
 
             if (left_side > 0).all() and (right_side > 0).all():
-                self.wheels_x_vel[3::] = -right_side
+                self.wheels_x_vel_single[3::] = -right_side
 
             if (left_side < 0).all() and (right_side < 0).all():
-                self.wheels_x_vel[3::] = -right_side
+                self.wheels_x_vel_single[3::] = -right_side
 
-        if self.verbose:
-            print("wheels x vel 2 = " + str(self.wheels_x_vel))
-        vx = sum(self.wheels_x_vel) / 6  # Average of each motor's forward speed
+        # if self.verbose:
+        #     print("wheels x vel 2 = " + str(self.wheels_x_vel_single))
+        vx = sum(self.wheels_x_vel_single) / 6  # Average of each motor's forward speed
 
         """ Velocity in y direction (left) """
         self.r_to_wheels()
         self.calculate_slip_angles()
         for i in range(6):
-            self.wheels_y_vel[i] = self.wheels_x_vel[i] * np.tan(self.slip_angles[i])  # Average of each motor's y speed
+            self.wheels_y_vel[i] = self.wheels_x_vel_single[i] * np.tan(
+                self.slip_angles[i])  # Average of each motor's y speed
 
         vy = sum(self.wheels_y_vel) / 6
 
@@ -264,6 +294,15 @@ class NoisyVelocity:
                     - rover moves forward and turn --> R != 0 --> v = w*R
                     - rover turns on itself (no combined forward motion) --> R = 0 --> can't do v = w*R
         """
+
+        """ Linear velocity of each wheel """
+
+        # if self.combined_motion or self.pure_rotation:
+        #
+        #     for i in range(len(self.wheels_x_vel_single)):
+        #         self.wheels_norm_vel[i] = math.sqrt(self.wheels_x_vel_single[i] ** 2 + self.wheels_y_vel[i] ** 2)
+        #         self.wheels_ang_vel[i] = self.wheels_norm_vel[i] / linalg.norm(self.R_to_wheels[i])
+
         if self.combined_motion:
             r = np.array([0.0, 0.0, 0.0])  # Pass turn radius in 3D for cross product
             r[0:2] = self.R[0:2]
@@ -271,17 +310,27 @@ class NoisyVelocity:
             self.v_ang_est = ang_rover[2]
 
         elif self.pure_rotation:
-            ang_WL1 = np.cross(self.R_to_WL1, np.array([self.wheels_x_vel[0], self.wheels_y_vel[0], 0.0]))
-            ang_WL2 = np.cross(self.R_to_WL2, np.array([self.wheels_x_vel[1], self.wheels_y_vel[1], 0.0]))
-            ang_WL3 = np.cross(self.R_to_WL2, np.array([self.wheels_x_vel[2], self.wheels_y_vel[2], 0.0]))
-            ang_WR1 = np.cross(self.R_to_WL2, np.array([self.wheels_x_vel[3], self.wheels_y_vel[3], 0.0]))
-            ang_WR2 = np.cross(self.R_to_WL2, np.array([self.wheels_x_vel[4], self.wheels_y_vel[4], 0.0]))
-            ang_WR3 = np.cross(self.R_to_WL2, np.array([self.wheels_x_vel[5], self.wheels_y_vel[5], 0.0]))
 
-            self.v_ang_est = (ang_WL1[2] + ang_WL2[2] + ang_WL3[2] + ang_WR1[2] + ang_WR2[2] + ang_WR3[2]) / 6
+            self.wheels_ang_vel[0] = \
+                np.cross(self.R_to_WL1, np.array([self.wheels_x_vel_single[0], self.wheels_y_vel[0], 0.0]))[2]
+            self.wheels_ang_vel[1] = \
+                np.cross(self.R_to_WL2, np.array([self.wheels_x_vel_single[1], self.wheels_y_vel[1], 0.0]))[2]
+            self.wheels_ang_vel[2] = \
+                np.cross(self.R_to_WL3, np.array([self.wheels_x_vel_single[2], self.wheels_y_vel[2], 0.0]))[2]
+            self.wheels_ang_vel[3] = \
+                np.cross(self.R_to_WR1, np.array([self.wheels_x_vel_single[3], self.wheels_y_vel[3], 0.0]))[2]
+            self.wheels_ang_vel[4] = \
+                np.cross(self.R_to_WR2, np.array([self.wheels_x_vel_single[4], self.wheels_y_vel[4], 0.0]))[2]
+            self.wheels_ang_vel[5] = \
+                np.cross(self.R_to_WR3, np.array([self.wheels_x_vel_single[5], self.wheels_y_vel[5], 0.0]))[2]
+
+            self.v_ang_est = sum(self.wheels_ang_vel) / 6
 
         elif self.pure_linear:
             self.v_ang_est = 0
+
+        if self.turn_right:
+            self.v_ang_est = -self.v_ang_est
 
         self.velocity_est.twist.twist.angular.z = self.v_ang_est
 
@@ -311,7 +360,6 @@ class NoisyVelocity:
         self.noisy_velocity_msg.publish(self.velocity_est)
 
         if self.verbose:
-
             print("vx_est = " + str(self.velocity_est.twist.twist.linear.x))
             print("vx_true = " + str(self.v_true[0]))
             print("vy_est = " + str(self.velocity_est.twist.twist.linear.y))
@@ -320,11 +368,13 @@ class NoisyVelocity:
             print("v_ang_true = " + str(self.v_true[2]))
             print("yaw_est = " + str(self.yaw_est))
             print("yaw_true = " + str(self.yaw_true))
-            # print("wheels speed = " + str(self.wheels_x_vel))
+            # print("wheels rot speed = " + str(self.wheels_rotational_speed))
+
+            # print("wheels speed = " + str(self.wheels_x_vel_single))
 
 
 if __name__ == '__main__':
-    rospy.init_node('noisy_velocity_node', anonymous=True)
+    rospy.init_node('noisy_velocity_node')
     noisy_velocity_object = NoisyVelocity()
     rate = rospy.Rate(50)
 
